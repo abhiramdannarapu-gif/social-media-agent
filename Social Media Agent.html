@@ -1,0 +1,2705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Social Media Agent — On Air</title>
+<style>
+  /* ─── PALETTE ─────────────────────────────────────────────────────────────
+     #0d0d0f  – studio black (background)
+     #1a1a20  – control-room surface
+     #252530  – panel / card
+     #e8003d  – broadcast red (accent / on-air indicator)
+     #ff6b35  – amber signal (secondary accent)
+     #f0f0f5  – off-white text
+     #8888a0  – muted / label text
+  ──────────────────────────────────────────────────────────────────────── */
+
+  @import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:        #0d0d0f;
+    --surface:   #1a1a20;
+    --panel:     #252530;
+    --red:       #e8003d;
+    --amber:     #ff6b35;
+    --text:      #f0f0f5;
+    --muted:     #8888a0;
+    --border:    #2e2e3a;
+    --sidebar-w: 290px;
+    --radius:    10px;
+    --font-ui:   'Barlow', system-ui, sans-serif;
+    --font-cond: 'Barlow Condensed', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+  }
+
+  html, body { height: 100%; }
+
+  body {
+    font-family: var(--font-ui);
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  /* ─── WAVEFORM HEADER DECORATION ─────────────────────────────────────── */
+  .waveform {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    height: 18px;
+  }
+  .waveform span {
+    display: block;
+    width: 3px;
+    background: var(--red);
+    border-radius: 2px;
+    animation: wave 1.2s ease-in-out infinite;
+  }
+  .waveform span:nth-child(1){ height: 4px;  animation-delay: 0s; }
+  .waveform span:nth-child(2){ height: 10px; animation-delay: 0.15s; }
+  .waveform span:nth-child(3){ height: 16px; animation-delay: 0.3s; }
+  .waveform span:nth-child(4){ height: 8px;  animation-delay: 0.45s; }
+  .waveform span:nth-child(5){ height: 14px; animation-delay: 0.6s; }
+  .waveform span:nth-child(6){ height: 6px;  animation-delay: 0.75s; }
+  .waveform span:nth-child(7){ height: 12px; animation-delay: 0.9s; }
+  @keyframes wave {
+    0%,100% { transform: scaleY(1); opacity: 0.6; }
+    50%      { transform: scaleY(1.6); opacity: 1; }
+  }
+  .waveform.idle span { animation: none; opacity: 0.25; }
+
+  /* ─── ON-AIR BADGE ───────────────────────────────────────────────────── */
+  .on-air {
+    display: flex; align-items: center; gap: 6px;
+    font-family: var(--font-cond);
+    font-size: 11px; font-weight: 700;
+    letter-spacing: 0.12em;
+    color: var(--red);
+    text-transform: uppercase;
+  }
+  .on-air-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--red);
+    box-shadow: 0 0 6px var(--red);
+    animation: blink 1.4s ease-in-out infinite;
+  }
+  @keyframes blink {
+    0%,100% { opacity: 1; }
+    50%      { opacity: 0.15; }
+  }
+
+  /* ─── SIDEBAR ────────────────────────────────────────────────────────── */
+  .sidebar {
+    width: var(--sidebar-w);
+    min-width: var(--sidebar-w);
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    overflow-x: hidden;
+    transition: transform 0.3s ease;
+    z-index: 100;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+  .sidebar::-webkit-scrollbar { width: 4px; }
+  .sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .sidebar-logo {
+    padding: 20px 18px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .logo-title {
+    font-family: var(--font-cond);
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: var(--text);
+    line-height: 1.1;
+  }
+  .logo-title span { color: var(--red); }
+  .logo-sub {
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+
+  .sidebar-section {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .sidebar-section:last-child { border-bottom: none; }
+
+  .section-label {
+    font-family: var(--font-cond);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 10px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .input-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+  .input-wrap input, .input-wrap select {
+    width: 100%;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 9px 36px 9px 11px;
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .input-wrap select { padding-right: 11px; font-family: var(--font-ui); font-size: 13px; }
+  .input-wrap input:focus, .input-wrap select:focus { border-color: var(--red); }
+  .input-wrap .eye-btn {
+    position: absolute; right: 8px;
+    background: none; border: none;
+    color: var(--muted); cursor: pointer; font-size: 15px;
+    padding: 2px; line-height: 1;
+    transition: color 0.2s;
+  }
+  .input-wrap .eye-btn:hover { color: var(--text); }
+
+  .key-status {
+    font-size: 11px;
+    margin-top: 5px;
+    display: flex; align-items: center; gap: 5px;
+  }
+  .key-status.ok  { color: #4caf7d; }
+  .key-status.bad { color: var(--red); }
+  .key-status-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+  select option { background: var(--panel); }
+
+  /* platform pills */
+  .platform-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+  .platform-btn {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--muted);
+    font-family: var(--font-ui);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 7px 6px;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.18s;
+    letter-spacing: 0.02em;
+  }
+  .platform-btn:hover { border-color: var(--amber); color: var(--amber); }
+  .platform-btn.active {
+    background: linear-gradient(135deg, rgba(232,0,61,0.18), rgba(255,107,53,0.12));
+    border-color: var(--red);
+    color: var(--text);
+  }
+  .platform-btn .icon { font-size: 14px; display: block; margin-bottom: 2px; }
+
+  /* tone pills */
+  .tone-grid {
+    display: flex; flex-wrap: wrap; gap: 6px;
+  }
+  .tone-btn {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    color: var(--muted);
+    font-size: 12px; font-weight: 600;
+    padding: 5px 12px;
+    cursor: pointer;
+    transition: all 0.18s;
+  }
+  .tone-btn:hover { border-color: var(--amber); color: var(--amber); }
+  .tone-btn.active {
+    background: rgba(255,107,53,0.15);
+    border-color: var(--amber);
+    color: var(--amber);
+  }
+
+  /* quick prompts */
+  .quick-btn {
+    width: 100%;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--muted);
+    font-family: var(--font-ui);
+    font-size: 12px;
+    padding: 8px 10px;
+    text-align: left;
+    cursor: pointer;
+    margin-bottom: 5px;
+    transition: all 0.18s;
+    line-height: 1.4;
+  }
+  .quick-btn:hover { border-color: var(--red); color: var(--text); background: rgba(232,0,61,0.08); }
+  .quick-btn:last-child { margin-bottom: 0; }
+
+  /* stats */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .stat-box {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px;
+    text-align: center;
+  }
+  .stat-num {
+    font-family: var(--font-cond);
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1;
+  }
+  .stat-lbl {
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-top: 3px;
+  }
+
+  .clear-btn {
+    width: 100%;
+    background: rgba(232,0,61,0.1);
+    border: 1px solid rgba(232,0,61,0.35);
+    border-radius: 8px;
+    color: var(--red);
+    font-family: var(--font-cond);
+    font-size: 13px; font-weight: 700;
+    letter-spacing: 0.06em;
+    padding: 9px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+  }
+  .clear-btn:hover { background: rgba(232,0,61,0.22); border-color: var(--red); }
+
+  .export-btn {
+    width: 100%;
+    background: rgba(255,107,53,0.1);
+    border: 1px solid rgba(255,107,53,0.35);
+    border-radius: 8px;
+    color: var(--amber);
+    font-family: var(--font-cond);
+    font-size: 13px; font-weight: 700;
+    letter-spacing: 0.06em;
+    padding: 9px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+    margin-top: 7px;
+  }
+  .export-btn:hover { background: rgba(255,107,53,0.22); border-color: var(--amber); }
+
+  /* ─── MAIN AREA ──────────────────────────────────────────────────────── */
+  .main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  /* Top bar */
+  .topbar {
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--surface);
+    flex-shrink: 0;
+  }
+  .topbar-left { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
+  .topbar-title {
+    font-family: var(--font-cond);
+    font-size: 17px; font-weight: 700;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis;
+  }
+  .context-chip {
+    display: flex; align-items: center; gap: 5px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 3px 10px;
+    font-size: 12px; font-weight: 600;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+  .context-chip span { color: var(--amber); }
+
+  .menu-btn {
+    display: none;
+    background: none; border: none;
+    color: var(--text); cursor: pointer;
+    font-size: 20px; padding: 2px 6px;
+    line-height: 1;
+  }
+
+  /* Chat area */
+  .chat-area {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+  .chat-area::-webkit-scrollbar { width: 5px; }
+  .chat-area::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  /* Welcome */
+  .welcome {
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    text-align: center;
+    padding: 40px 20px;
+    flex: 1;
+    opacity: 1; transition: opacity 0.3s;
+  }
+  .welcome.hidden { display: none; }
+  .welcome-icon {
+    width: 64px; height: 64px;
+    background: linear-gradient(135deg, var(--red), var(--amber));
+    border-radius: 18px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 30px;
+    margin-bottom: 16px;
+    box-shadow: 0 0 30px rgba(232,0,61,0.3);
+  }
+  .welcome h2 {
+    font-family: var(--font-cond);
+    font-size: 26px; font-weight: 700;
+    margin-bottom: 6px;
+  }
+  .welcome p { color: var(--muted); font-size: 14px; max-width: 340px; }
+
+  /* Messages */
+  .msg {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    max-width: 820px;
+    width: 100%;
+  }
+  .msg.user { flex-direction: row-reverse; align-self: flex-end; }
+  .msg.bot  { align-self: flex-start; }
+
+  .avatar {
+    width: 34px; height: 34px;
+    border-radius: 10px;
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    font-weight: 700;
+    font-family: var(--font-cond);
+  }
+  .msg.user .avatar {
+    background: linear-gradient(135deg, #3a3a50, #252530);
+    border: 1px solid var(--border);
+    color: var(--muted);
+  }
+  .msg.bot .avatar {
+    background: linear-gradient(135deg, var(--red), var(--amber));
+    color: #fff;
+    box-shadow: 0 0 12px rgba(232,0,61,0.35);
+  }
+
+  .bubble {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 15px;
+    font-size: 14px; line-height: 1.65;
+    color: var(--text);
+    word-break: break-word;
+    position: relative;
+    max-width: calc(100% - 50px);
+  }
+  .msg.user .bubble {
+    background: rgba(232,0,61,0.12);
+    border-color: rgba(232,0,61,0.3);
+    border-bottom-right-radius: 4px;
+  }
+  .msg.bot .bubble {
+    border-bottom-left-radius: 4px;
+  }
+
+  /* Bubble actions */
+  .bubble-actions {
+    display: flex; gap: 6px;
+    margin-top: 8px; padding-top: 8px;
+    border-top: 1px solid var(--border);
+  }
+  .bub-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--muted);
+    font-size: 11px; font-weight: 600;
+    padding: 4px 9px;
+    cursor: pointer;
+    transition: all 0.15s;
+    letter-spacing: 0.03em;
+    display: flex; align-items: center; gap: 4px;
+    font-family: var(--font-ui);
+  }
+  .bub-btn:hover { border-color: var(--amber); color: var(--amber); }
+  .bub-btn.copied { border-color: #4caf7d; color: #4caf7d; }
+
+  /* Typing indicator */
+  .typing-indicator {
+    display: flex; gap: 12px; align-items: flex-start;
+    align-self: flex-start;
+  }
+  .typing-dots {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    border-bottom-left-radius: 4px;
+    padding: 14px 18px;
+    display: flex; gap: 5px; align-items: center;
+  }
+  .typing-dots span {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--muted);
+    animation: bounce 1.2s ease-in-out infinite;
+  }
+  .typing-dots span:nth-child(2){ animation-delay: 0.2s; }
+  .typing-dots span:nth-child(3){ animation-delay: 0.4s; }
+  @keyframes bounce {
+    0%,80%,100%{ transform: translateY(0); opacity: 0.4; }
+    40%         { transform: translateY(-5px); opacity: 1; }
+  }
+
+  /* Error message */
+  .error-msg {
+    background: rgba(232,0,61,0.1);
+    border: 1px solid rgba(232,0,61,0.4);
+    border-radius: 10px;
+    padding: 12px 15px;
+    color: #ff6680;
+    font-size: 13px;
+    line-height: 1.5;
+    display: flex; gap: 8px; align-items: flex-start;
+  }
+  .error-msg strong { color: var(--red); }
+
+  /* ─── INPUT BAR ──────────────────────────────────────────────────────── */
+  .input-bar {
+    padding: 14px 20px;
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+    flex-shrink: 0;
+  }
+  .input-row {
+    display: flex; gap: 10px; align-items: flex-end;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 8px 10px;
+    transition: border-color 0.2s;
+  }
+  .input-row:focus-within { border-color: var(--red); }
+
+  #msgInput {
+    flex: 1;
+    background: none; border: none; outline: none;
+    color: var(--text);
+    font-family: var(--font-ui);
+    font-size: 14px; line-height: 1.5;
+    resize: none;
+    min-height: 22px; max-height: 160px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+  #msgInput::placeholder { color: var(--muted); }
+
+  .send-btn {
+    width: 38px; height: 38px;
+    background: linear-gradient(135deg, var(--red), var(--amber));
+    border: none; border-radius: 8px;
+    color: #fff; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 17px;
+    transition: opacity 0.2s, transform 0.15s;
+    flex-shrink: 0;
+  }
+  .send-btn:hover:not(:disabled) { opacity: 0.88; transform: scale(1.06); }
+  .send-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+  .input-meta {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 5px 2px 0;
+  }
+  .char-count { font-size: 11px; color: var(--muted); }
+  .char-count.warn { color: var(--amber); }
+  .char-count.over { color: var(--red); }
+  .regen-btn {
+    background: none; border: none;
+    color: var(--muted); font-size: 12px; font-weight: 600;
+    cursor: pointer; font-family: var(--font-ui);
+    display: flex; align-items: center; gap: 4px;
+    transition: color 0.15s; padding: 2px 0;
+    letter-spacing: 0.02em;
+  }
+  .regen-btn:hover { color: var(--amber); }
+
+  /* ─── OVERLAY (mobile) ────────────────────────────────────────────────── */
+  .overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 99;
+  }
+  .overlay.show { display: block; }
+
+  /* ─── RESPONSIVE ──────────────────────────────────────────────────────── */
+  @media (max-width: 680px) {
+    .sidebar {
+      position: fixed;
+      top: 0; left: 0; bottom: 0;
+      transform: translateX(-100%);
+    }
+    .sidebar.open { transform: translateX(0); }
+    .menu-btn { display: flex; }
+    .topbar-title { font-size: 15px; }
+    .context-chip { display: none; }
+    .chat-area { padding: 16px 12px; }
+    .input-bar { padding: 10px 12px; }
+  }
+
+  /* ─── SCROLLBAR GLOBAL ────────────────────────────────────────────────── */
+  * { scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+  *::-webkit-scrollbar { width: 5px; height: 5px; }
+  *::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  /* ─── MARKDOWN RENDERING ─────────────────────────────────────────────── */
+  .bubble p { margin-bottom: 8px; }
+  .bubble p:last-child { margin-bottom: 0; }
+  .bubble ul, .bubble ol { padding-left: 18px; margin-bottom: 8px; }
+  .bubble li { margin-bottom: 3px; }
+  .bubble strong { color: var(--amber); font-weight: 700; }
+  .bubble em { color: #c0c0d8; font-style: italic; }
+  .bubble code {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1px 5px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: #c084fc;
+  }
+  .bubble pre {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    overflow-x: auto;
+    margin-bottom: 8px;
+  }
+  .bubble pre code { background: none; border: none; padding: 0; font-size: 12.5px; color: var(--text); }
+  .bubble h1,.bubble h2,.bubble h3 {
+    font-family: var(--font-cond); font-weight: 700; margin-bottom: 6px;
+    color: var(--text);
+  }
+  .bubble h1 { font-size: 18px; }
+  .bubble h2 { font-size: 16px; }
+  .bubble h3 { font-size: 14px; }
+  .bubble blockquote {
+    border-left: 3px solid var(--red);
+    padding-left: 12px;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .bubble hr { border: none; border-top: 1px solid var(--border); margin: 10px 0; }
+  .bubble a { color: var(--amber); }
+
+  /* ─── FEATURE 1: BOOT OVERLAY ──────────────────────────────────────────── */
+  #bootOverlay {
+    position: fixed; inset: 0;
+    background: var(--bg);
+    z-index: 9999;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 24px;
+    transition: opacity 0.55s ease;
+  }
+  #bootOverlay.fade-out { opacity: 0; pointer-events: none; }
+
+  .boot-onair {
+    display: flex; align-items: center; gap: 10px;
+    font-family: var(--font-cond);
+    font-size: 22px; font-weight: 700;
+    letter-spacing: 0.18em;
+    color: var(--red);
+    text-transform: uppercase;
+    opacity: 0;
+    animation: bootDotFadeIn 0.5s ease forwards 0.1s;
+  }
+  .boot-onair-dot {
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: var(--red);
+    box-shadow: 0 0 14px var(--red), 0 0 28px rgba(232,0,61,0.5);
+    animation: bootDotPulse 0.7s ease-in-out infinite 0.2s;
+    opacity: 0;
+    animation: bootDotFadeIn 0.45s ease forwards 0s, bootDotPulse 0.7s ease-in-out infinite 0.5s;
+  }
+  @keyframes bootDotFadeIn {
+    from { opacity: 0; transform: scale(0.6); }
+    to   { opacity: 1; transform: scale(1); }
+  }
+  @keyframes bootDotPulse {
+    0%,100% { box-shadow: 0 0 6px var(--red); }
+    50%      { box-shadow: 0 0 20px var(--red), 0 0 40px rgba(232,0,61,0.6); }
+  }
+
+  .boot-wave-wrap {
+    display: flex; align-items: flex-end; gap: 4px;
+    height: 48px;
+  }
+  .boot-wave-wrap span {
+    display: block;
+    width: 5px;
+    background: var(--red);
+    border-radius: 3px 3px 0 0;
+    transform-origin: bottom center;
+    animation: bootBarSweep 0.12s ease forwards;
+    height: 3px;
+  }
+  .boot-wave-wrap span:nth-child(1)  { animation-delay: 0.55s; --target-h: 10px; }
+  .boot-wave-wrap span:nth-child(2)  { animation-delay: 0.60s; --target-h: 24px; }
+  .boot-wave-wrap span:nth-child(3)  { animation-delay: 0.65s; --target-h: 40px; }
+  .boot-wave-wrap span:nth-child(4)  { animation-delay: 0.70s; --target-h: 20px; }
+  .boot-wave-wrap span:nth-child(5)  { animation-delay: 0.75s; --target-h: 34px; }
+  .boot-wave-wrap span:nth-child(6)  { animation-delay: 0.80s; --target-h: 14px; }
+  .boot-wave-wrap span:nth-child(7)  { animation-delay: 0.85s; --target-h: 30px; }
+  .boot-wave-wrap span:nth-child(8)  { animation-delay: 0.90s; --target-h: 48px; }
+  .boot-wave-wrap span:nth-child(9)  { animation-delay: 0.95s; --target-h: 22px; }
+  .boot-wave-wrap span:nth-child(10) { animation-delay: 1.00s; --target-h: 36px; }
+  .boot-wave-wrap span:nth-child(11) { animation-delay: 1.05s; --target-h: 16px; }
+  .boot-wave-wrap span:nth-child(12) { animation-delay: 1.10s; --target-h: 42px; }
+  .boot-wave-wrap span:nth-child(13) { animation-delay: 1.15s; --target-h: 28px; }
+  .boot-wave-wrap span:nth-child(14) { animation-delay: 1.20s; --target-h: 18px; }
+  @keyframes bootBarSweep {
+    from { height: 3px; opacity: 0.3; }
+    to   { height: var(--target-h); opacity: 0.9; }
+  }
+  /* after sweep, the bars then pulse like normal waveform */
+  .boot-wave-wrap.live span {
+    animation: wave 1.2s ease-in-out infinite;
+  }
+  .boot-wave-wrap.live span:nth-child(1)  { height: 10px; animation-delay: 0s; }
+  .boot-wave-wrap.live span:nth-child(2)  { height: 24px; animation-delay: 0.1s; }
+  .boot-wave-wrap.live span:nth-child(3)  { height: 40px; animation-delay: 0.2s; }
+  .boot-wave-wrap.live span:nth-child(4)  { height: 20px; animation-delay: 0.3s; }
+  .boot-wave-wrap.live span:nth-child(5)  { height: 34px; animation-delay: 0.4s; }
+  .boot-wave-wrap.live span:nth-child(6)  { height: 14px; animation-delay: 0.5s; }
+  .boot-wave-wrap.live span:nth-child(7)  { height: 30px; animation-delay: 0.6s; }
+  .boot-wave-wrap.live span:nth-child(8)  { height: 48px; animation-delay: 0.7s; }
+  .boot-wave-wrap.live span:nth-child(9)  { height: 22px; animation-delay: 0.8s; }
+  .boot-wave-wrap.live span:nth-child(10) { height: 36px; animation-delay: 0.9s; }
+  .boot-wave-wrap.live span:nth-child(11) { height: 16px; animation-delay: 1.0s; }
+  .boot-wave-wrap.live span:nth-child(12) { height: 42px; animation-delay: 1.1s; }
+  .boot-wave-wrap.live span:nth-child(13) { height: 28px; animation-delay: 1.2s; }
+  .boot-wave-wrap.live span:nth-child(14) { height: 18px; animation-delay: 1.3s; }
+
+  .boot-label {
+    font-family: var(--font-cond);
+    font-size: 11px; letter-spacing: 0.2em;
+    color: var(--muted); text-transform: uppercase;
+    opacity: 0;
+    animation: bootDotFadeIn 0.4s ease forwards 1.1s;
+  }
+
+  /* ─── FEATURE 2: TYPEWRITER / CRT EFFECT ────────────────────────────────── */
+  @keyframes crtFlicker {
+    0%   { opacity: 1; }
+    92%  { opacity: 1; }
+    93%  { opacity: 0.82; }
+    94%  { opacity: 1; }
+    97%  { opacity: 0.9; }
+    100% { opacity: 1; }
+  }
+  .bubble.typing-active {
+    animation: crtFlicker 2.4s linear infinite;
+    position: relative;
+  }
+  /* scanline pseudo-element on the actively-typing bubble only */
+  .bubble.typing-active::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: repeating-linear-gradient(
+      to bottom,
+      transparent 0px,
+      transparent 3px,
+      rgba(0,0,0,0.12) 3px,
+      rgba(0,0,0,0.12) 4px
+    );
+    pointer-events: none;
+    border-radius: 12px;
+    opacity: 0.55;
+  }
+  /* blinking cursor during typewriter */
+  .tw-cursor {
+    display: inline-block;
+    width: 2px; height: 1em;
+    background: var(--red);
+    margin-left: 1px;
+    vertical-align: text-bottom;
+    animation: twCursorBlink 0.7s step-end infinite;
+  }
+  @keyframes twCursorBlink {
+    0%,100% { opacity: 1; }
+    50%      { opacity: 0; }
+  }
+
+  /* ─── FEATURE 3: PLATFORM CHANNEL-CHANGE FLASH ──────────────────────────── */
+  @keyframes channelPulse {
+    0%   { box-shadow: 0 0 0 0 var(--ch-color); background: linear-gradient(135deg, var(--ch-bg-a), var(--ch-bg-b)); border-color: var(--ch-color); }
+    35%  { box-shadow: 0 0 18px 4px var(--ch-color); background: linear-gradient(135deg, var(--ch-bg-a), var(--ch-bg-b)); border-color: var(--ch-color); }
+    100% { box-shadow: 0 0 0 0 var(--ch-color); }
+  }
+  .platform-btn.channel-flash {
+    animation: channelPulse 0.55s ease forwards;
+  }
+  /* topbar channel wash */
+  @keyframes topbarChannelWash {
+    0%   { background: var(--surface); box-shadow: none; }
+    30%  { background: var(--ch-topbar-bg); box-shadow: 0 0 24px 0 var(--ch-topbar-glow); }
+    100% { background: var(--surface); box-shadow: none; }
+  }
+  .topbar.channel-wash {
+    animation: topbarChannelWash 0.55s ease forwards;
+  }
+
+  /* ─── FEATURE A: RADAR SWEEP ────────────────────────────────────────────── */
+  #radarCanvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0;
+    transition: opacity 0.6s ease;
+    border-radius: 0;
+  }
+  #radarCanvas.active { opacity: 1; }
+
+  /* ─── FEATURE B: GLITCH REVEAL ──────────────────────────────────────────── */
+  .bubble.glitch-pending {
+    /* placeholder visibility so layout reserves space before reveal */
+    visibility: hidden;
+  }
+  .glitch-canvas-wrap {
+    position: absolute;
+    inset: 0;
+    border-radius: 12px;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 2;
+  }
+  .glitch-canvas-wrap canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+  /* real content fades in after glitch dissolves */
+  .bubble-inner {
+    position: relative;
+    z-index: 1;
+  }
+  .bubble.glitch-revealing .bubble-inner {
+    opacity: 0;
+    transition: opacity 0.25s ease;
+  }
+  .bubble.glitch-done .bubble-inner {
+    opacity: 1;
+  }
+
+  /* ─── FEATURE C: MILESTONE BURST ────────────────────────────────────────── */
+  #burstCanvas {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 8000;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+  }
+  #burstCanvas.active { opacity: 1; }
+  /* milestone label */
+  #milestoneLabel {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.7);
+    font-family: var(--font-cond);
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text);
+    text-shadow: 0 0 20px var(--red), 0 0 40px var(--amber);
+    pointer-events: none;
+    z-index: 8001;
+    opacity: 0;
+    transition: opacity 0.18s ease, transform 0.25s cubic-bezier(0.34,1.56,0.64,1);
+    white-space: nowrap;
+  }
+  #milestoneLabel.active {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+
+  /* ══════════════════════════════════════════════════════════════════════════
+     FEATURE 1 — POST PREVIEW MOCKUP
+  ══════════════════════════════════════════════════════════════════════════ */
+  .preview-wrap {
+    align-self: flex-start;
+    width: 100%;
+    max-width: 420px;
+    opacity: 0;
+    transform: translateY(6px);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    margin-left: 46px; /* align under bot avatar */
+  }
+  .preview-wrap.visible { opacity: 1; transform: translateY(0); }
+
+  /* Toggle row */
+  .preview-toggle-row {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 6px;
+  }
+  .preview-toggle-btn {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    color: var(--muted);
+    font-family: var(--font-cond);
+    font-size: 10px; font-weight: 700;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    padding: 4px 10px;
+    cursor: pointer;
+    display: flex; align-items: center; gap: 5px;
+    transition: all 0.15s;
+  }
+  .preview-toggle-btn:hover { border-color: var(--amber); color: var(--amber); }
+  .preview-toggle-btn.active { border-color: var(--red); color: var(--red); background: rgba(232,0,61,0.08); }
+  .preview-toggle-btn .ptb-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: currentColor;
+  }
+
+  /* Card shell */
+  .mock-card {
+    display: none;
+    background: #fff;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.45);
+    font-family: -apple-system, 'Segoe UI', Arial, sans-serif;
+    color: #1a1a1a;
+    font-size: 13px;
+    line-height: 1.4;
+  }
+  .mock-card.show { display: block; }
+
+  /* Download button */
+  .mock-dl-btn {
+    display: block; width: 100%;
+    background: rgba(232,0,61,0.1);
+    border: 1px solid rgba(232,0,61,0.3);
+    border-radius: 0 0 12px 12px;
+    color: var(--red);
+    font-family: var(--font-cond);
+    font-size: 11px; font-weight: 700;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    padding: 8px;
+    cursor: pointer;
+    text-align: center;
+    transition: background 0.15s;
+  }
+  .mock-dl-btn:hover { background: rgba(232,0,61,0.18); }
+
+  /* ── Instagram ── */
+  .mock-ig { font-family: -apple-system,'Segoe UI',Arial,sans-serif; }
+  .mock-ig .ig-header { display:flex;align-items:center;gap:9px;padding:10px 12px; }
+  .mock-ig .ig-av { width:32px;height:32px;border-radius:50%;
+    background:linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);
+    display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:13px; }
+  .mock-ig .ig-name { font-weight:700;font-size:13px; }
+  .mock-ig .ig-sub  { font-size:11px;color:#888; }
+  .mock-ig .ig-img  { width:100%;aspect-ratio:1;background:linear-gradient(135deg,#2a2a3a,#3a2a4a);
+    display:flex;align-items:center;justify-content:center;color:#888;font-size:28px; }
+  .mock-ig .ig-actions { display:flex;gap:14px;padding:10px 12px 4px;font-size:20px; }
+  .mock-ig .ig-likes { padding:0 12px 4px;font-weight:700;font-size:13px; }
+  .mock-ig .ig-caption { padding:0 12px 8px;font-size:13px;line-height:1.45; }
+  .mock-ig .ig-caption b { font-weight:700; }
+  .mock-ig .ig-tags { padding:0 12px 10px;font-size:12px;color:#00376b; }
+  .mock-ig .ig-time { padding:0 12px 10px;font-size:11px;color:#aaa;text-transform:uppercase;letter-spacing:.04em; }
+
+  /* ── X / Twitter ── */
+  .mock-tw .tw-card { padding:14px 14px 10px; }
+  .mock-tw .tw-header { display:flex;gap:10px;margin-bottom:8px; }
+  .mock-tw .tw-av { width:40px;height:40px;border-radius:50%;
+    background:linear-gradient(135deg,#1d9bf0,#1565c0);
+    flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:15px; }
+  .mock-tw .tw-name { font-weight:700;font-size:14px; }
+  .mock-tw .tw-handle { color:#536471;font-size:13px; }
+  .mock-tw .tw-x { margin-left:auto;font-size:18px;color:#000;font-weight:900; }
+  .mock-tw .tw-body { font-size:15px;line-height:1.5;margin-bottom:10px; }
+  .mock-tw .tw-actions { display:flex;gap:20px;color:#536471;font-size:13px; }
+  .mock-tw .tw-actions span { display:flex;align-items:center;gap:4px; }
+  .mock-tw .tw-time { color:#536471;font-size:13px;margin-top:8px;padding-top:8px;border-top:1px solid #eff3f4; }
+  .mock-tw { background:#fff; }
+
+  /* ── LinkedIn ── */
+  .mock-li .li-header { display:flex;gap:10px;padding:14px 14px 10px;align-items:flex-start; }
+  .mock-li .li-av { width:44px;height:44px;border-radius:50%;
+    background:linear-gradient(135deg,#0077b5,#00a0dc);
+    flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:16px; }
+  .mock-li .li-name { font-weight:700;font-size:14px; }
+  .mock-li .li-title { font-size:12px;color:#666; }
+  .mock-li .li-follow { margin-left:auto;color:#0077b5;font-size:13px;font-weight:700;white-space:nowrap; }
+  .mock-li .li-body { padding:0 14px 12px;font-size:14px;line-height:1.5; }
+  .mock-li .li-img { width:100%;height:120px;background:linear-gradient(135deg,#2a2a3a,#1a3a5a);
+    display:flex;align-items:center;justify-content:center;color:#aaa;font-size:26px; }
+  .mock-li .li-actions { display:flex;gap:0;border-top:1px solid #e0e0e0;margin:0 14px; }
+  .mock-li .li-act { flex:1;text-align:center;padding:10px 4px;font-size:12px;color:#666;font-weight:600;
+    display:flex;align-items:center;justify-content:center;gap:4px; }
+  .mock-li { background:#fff; }
+
+  /* ── TikTok ── */
+  .mock-tt { background:#000;color:#fff;position:relative; }
+  .mock-tt .tt-video { width:100%;aspect-ratio:9/16;max-height:280px;
+    background:linear-gradient(160deg,#1a0a2a,#0a1a2a,#0a2a1a);
+    display:flex;align-items:center;justify-content:center;font-size:36px;position:relative; }
+  .mock-tt .tt-side { position:absolute;right:10px;bottom:80px;display:flex;flex-direction:column;gap:16px;align-items:center; }
+  .mock-tt .tt-side-av { width:36px;height:36px;border-radius:50%;
+    background:linear-gradient(135deg,#69c9d0,#ee1d52);
+    display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;font-weight:700; }
+  .mock-tt .tt-icon { font-size:24px;display:flex;flex-direction:column;align-items:center;gap:2px; }
+  .mock-tt .tt-icon span { font-size:11px;font-weight:600; }
+  .mock-tt .tt-bottom { padding:12px;background:linear-gradient(to top,rgba(0,0,0,.9),rgba(0,0,0,.3)); }
+  .mock-tt .tt-user { font-weight:700;font-size:14px;margin-bottom:4px; }
+  .mock-tt .tt-cap  { font-size:13px;line-height:1.4;opacity:.9; }
+
+  /* ── Facebook ── */
+  .mock-fb .fb-header { display:flex;gap:10px;padding:12px 12px 8px;align-items:flex-start; }
+  .mock-fb .fb-av { width:40px;height:40px;border-radius:50%;
+    background:linear-gradient(135deg,#1877f2,#0d5bbd);
+    flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:16px; }
+  .mock-fb .fb-name { font-weight:700;font-size:14px; }
+  .mock-fb .fb-time { font-size:12px;color:#65676b;display:flex;align-items:center;gap:3px; }
+  .mock-fb .fb-body { padding:0 12px 10px;font-size:14px;line-height:1.5; }
+  .mock-fb .fb-img { width:100%;height:140px;background:linear-gradient(135deg,#1a2a3a,#2a1a3a);
+    display:flex;align-items:center;justify-content:center;color:#aaa;font-size:26px; }
+  .mock-fb .fb-reactions { padding:8px 12px 4px;display:flex;justify-content:space-between;
+    font-size:13px;color:#65676b; }
+  .mock-fb .fb-actions { display:flex;border-top:1px solid #e4e6eb;margin:0 12px; }
+  .mock-fb .fb-act { flex:1;text-align:center;padding:8px 4px;font-size:13px;color:#65676b;font-weight:600;
+    display:flex;align-items:center;justify-content:center;gap:4px; }
+  .mock-fb { background:#fff; }
+
+  /* ══════════════════════════════════════════════════════════════════════════
+     FEATURE 2 — SESSION INSIGHTS PANEL
+  ══════════════════════════════════════════════════════════════════════════ */
+  .insights-toggle-btn {
+    width: 100%;
+    background: none;
+    border: none;
+    display: flex; align-items: center; justify-content: space-between;
+    cursor: pointer;
+    padding: 0;
+    margin-bottom: 0;
+  }
+  .insights-toggle-btn .itb-label {
+    font-family: var(--font-cond);
+    font-size: 10px; font-weight: 700;
+    letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--muted);
+    display: flex; align-items: center; gap: 6px;
+  }
+  .insights-toggle-btn .itb-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+    min-width: 20px;
+  }
+  .insights-toggle-btn .itb-caret {
+    font-size: 9px; color: var(--muted); transition: transform 0.2s;
+    flex-shrink: 0; margin-left: 6px;
+  }
+  .insights-toggle-btn.open .itb-caret { transform: rotate(180deg); }
+
+  .insights-body {
+    overflow: hidden;
+    max-height: 0;
+    transition: max-height 0.35s ease;
+  }
+  .insights-body.open { max-height: 600px; }
+
+  .insights-kpi-row {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 7px;
+    margin: 10px 0 8px;
+  }
+  .ins-kpi {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px; padding: 9px 10px; text-align: center;
+  }
+  .ins-kpi-num {
+    font-family: var(--font-cond); font-size: 20px; font-weight: 700;
+    color: var(--text); line-height: 1;
+  }
+  .ins-kpi-lbl {
+    font-size: 10px; color: var(--muted); letter-spacing: .08em;
+    text-transform: uppercase; margin-top: 3px;
+  }
+
+  .ins-chart-label {
+    font-family: var(--font-cond); font-size: 9px; font-weight: 700;
+    letter-spacing: .12em; text-transform: uppercase;
+    color: var(--muted); margin: 8px 0 5px;
+  }
+
+  /* Donut charts */
+  .ins-donuts {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+    margin-bottom: 8px;
+  }
+  .ins-donut-wrap {
+    display: flex; flex-direction: column; align-items: center;
+    gap: 4px;
+  }
+  .ins-donut-title {
+    font-family: var(--font-cond); font-size: 9px; font-weight: 700;
+    letter-spacing: .1em; text-transform: uppercase; color: var(--muted);
+    text-align: center;
+  }
+  .ins-donut-svg { overflow: visible; }
+  .ins-donut-legend {
+    width: 100%;
+  }
+  .ins-legend-item {
+    display: flex; align-items: center; gap: 4px;
+    font-size: 9px; color: var(--muted);
+    margin-bottom: 2px; line-height: 1.2;
+    overflow: hidden;
+  }
+  .ins-legend-dot {
+    width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
+  }
+  .ins-legend-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+  .ins-legend-pct  { color: var(--text); font-weight: 600; flex-shrink: 0; }
+
+  /* Message bar chart */
+  .ins-bar-chart {
+    width: 100%;
+    overflow: hidden;
+  }
+  .ins-bar-row {
+    display: flex; align-items: center; gap: 5px; margin-bottom: 4px;
+  }
+  .ins-bar-label {
+    font-family: var(--font-mono); font-size: 9px; color: var(--muted);
+    width: 18px; text-align: right; flex-shrink: 0;
+  }
+  .ins-bar-track {
+    flex: 1; height: 8px; background: var(--panel);
+    border-radius: 4px; overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  .ins-bar-fill {
+    height: 100%; border-radius: 4px;
+    background: linear-gradient(90deg, var(--red), var(--amber));
+    width: 0%;
+    transition: width 0.45s cubic-bezier(0.25, 1, 0.5, 1);
+  }
+  .ins-bar-count {
+    font-family: var(--font-mono); font-size: 9px; color: var(--muted);
+    width: 16px; flex-shrink: 0;
+  }
+  .ins-empty {
+    font-size: 11px; color: var(--muted); text-align: center;
+    padding: 12px 0; font-style: italic;
+  }
+</style>
+</head>
+<body>
+
+<!-- ─── BOOT OVERLAY (Feature 1) ─────────────────────────────────────────── -->
+<div id="bootOverlay">
+  <div class="boot-onair">
+    <div class="boot-onair-dot"></div>
+    On Air
+  </div>
+  <div class="boot-wave-wrap" id="bootWave">
+    <span></span><span></span><span></span><span></span><span></span>
+    <span></span><span></span><span></span><span></span><span></span>
+    <span></span><span></span><span></span><span></span>
+  </div>
+  <div class="boot-label">Broadcast Signal Initialising…</div>
+</div>
+
+<!-- OVERLAY (mobile) -->
+<div class="overlay" id="overlay"></div>
+
+<!-- ─── SIDEBAR ─────────────────────────────────────────────── -->
+<aside class="sidebar" id="sidebar">
+
+  <div class="sidebar-logo">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+      <div class="on-air"><div class="on-air-dot"></div> On Air</div>
+      <div class="waveform" id="sideWave">
+        <span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+      </div>
+    </div>
+    <div class="logo-title">Social<span>Media</span><br>Agent</div>
+    <div class="logo-sub">Broadcast Content Studio</div>
+  </div>
+
+  <!-- API KEY -->
+  <div class="sidebar-section">
+    <div class="section-label">API Key</div>
+    <div class="input-wrap">
+      <input type="password" id="apiKeyInput" placeholder="gsk_..." autocomplete="off" />
+      <button class="eye-btn" id="eyeBtn" title="Toggle visibility">👁</button>
+    </div>
+    <div class="key-status" id="keyStatus"></div>
+  </div>
+
+  <!-- MODEL -->
+  <div class="sidebar-section">
+    <div class="section-label">Model</div>
+    <div class="input-wrap">
+      <select id="modelSelect">
+        <option value="llama-3.3-70b-versatile">Llama 3.3 70B Versatile</option>
+        <option value="llama-3.1-8b-instant">Llama 3.1 8B Instant</option>
+        <option value="mixtral-8x7b-32768">Mixtral 8x7B</option>
+        <option value="gemma2-9b-it">Gemma 2 9B</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- PLATFORM -->
+  <div class="sidebar-section">
+    <div class="section-label">Platform</div>
+    <div class="platform-grid">
+      <button class="platform-btn active" data-platform="Instagram">
+        <span class="icon">📸</span>Instagram
+      </button>
+      <button class="platform-btn" data-platform="X/Twitter">
+        <span class="icon">𝕏</span>X / Twitter
+      </button>
+      <button class="platform-btn" data-platform="LinkedIn">
+        <span class="icon">💼</span>LinkedIn
+      </button>
+      <button class="platform-btn" data-platform="TikTok">
+        <span class="icon">🎵</span>TikTok
+      </button>
+      <button class="platform-btn" data-platform="Facebook" style="grid-column:1/-1;">
+        <span class="icon">📘</span>Facebook
+      </button>
+    </div>
+  </div>
+
+  <!-- TONE -->
+  <div class="sidebar-section">
+    <div class="section-label">Tone</div>
+    <div class="tone-grid">
+      <button class="tone-btn active" data-tone="Casual">Casual</button>
+      <button class="tone-btn" data-tone="Professional">Professional</button>
+      <button class="tone-btn" data-tone="Funny">Funny</button>
+      <button class="tone-btn" data-tone="Bold">Bold</button>
+      <button class="tone-btn" data-tone="Inspirational">Inspirational</button>
+      <button class="tone-btn" data-tone="Witty">Witty</button>
+    </div>
+  </div>
+
+  <!-- QUICK PROMPTS -->
+  <div class="sidebar-section">
+    <div class="section-label">Quick Prompts</div>
+    <button class="quick-btn" data-prompt="Write a caption for a product launch post">✍️ Product launch caption</button>
+    <button class="quick-btn" data-prompt="Give me 10 hashtag ideas for my niche">🏷️ Hashtag ideas</button>
+    <button class="quick-btn" data-prompt="Write a Twitter thread outline on a trending topic">🧵 Twitter thread outline</button>
+    <button class="quick-btn" data-prompt="Create a content calendar for this week with 5 post ideas">📅 Weekly content calendar</button>
+    <button class="quick-btn" data-prompt="Rewrite this post to improve engagement and add a CTA">🔁 Rewrite for engagement</button>
+    <button class="quick-btn" data-prompt="Write a LinkedIn article intro about industry trends">💼 LinkedIn article intro</button>
+  </div>
+
+  <!-- STATS -->
+  <div class="sidebar-section">
+    <div class="section-label">Session Stats</div>
+    <div class="stats-grid">
+      <div class="stat-box">
+        <div class="stat-num" id="statMsgs">0</div>
+        <div class="stat-lbl">Messages</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num" id="statTokens">0</div>
+        <div class="stat-lbl">Tokens</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SESSION INSIGHTS (Feature 2) -->
+  <div class="sidebar-section" id="insightsSection">
+    <button class="insights-toggle-btn" id="insightsToggleBtn">
+      <span class="itb-label">Session Insights</span>
+      <span class="itb-caret">▼</span>
+    </button>
+    <div class="insights-body" id="insightsBody">
+      <div class="insights-kpi-row">
+        <div class="ins-kpi"><div class="ins-kpi-num" id="insKpiMsgs">0</div><div class="ins-kpi-lbl">Messages</div></div>
+        <div class="ins-kpi"><div class="ins-kpi-num" id="insKpiTokens">0</div><div class="ins-kpi-lbl">Tokens</div></div>
+      </div>
+      <div class="ins-donuts">
+        <div class="ins-donut-wrap">
+          <div class="ins-donut-title">Platform</div>
+          <svg class="ins-donut-svg" id="donutPlatform" width="90" height="90" viewBox="0 0 90 90"></svg>
+          <div class="ins-donut-legend" id="legendPlatform"></div>
+        </div>
+        <div class="ins-donut-wrap">
+          <div class="ins-donut-title">Tone</div>
+          <svg class="ins-donut-svg" id="donutTone" width="90" height="90" viewBox="0 0 90 90"></svg>
+          <div class="ins-donut-legend" id="legendTone"></div>
+        </div>
+      </div>
+      <div class="ins-chart-label">Messages over time</div>
+      <div class="ins-bar-chart" id="msgBarChart">
+        <div class="ins-empty">No data yet</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ACTIONS -->
+  <div class="sidebar-section">
+    <div class="section-label">Actions</div>
+    <button class="clear-btn" id="clearBtn">🗑 Clear Chat</button>
+    <button class="export-btn" id="exportBtn">⬇ Export Chat</button>
+  </div>
+
+</aside>
+
+<!-- Burst canvas — fixed full-screen (Feature C) -->
+<canvas id="burstCanvas"></canvas>
+<div id="milestoneLabel"></div>
+
+<!-- ─── MAIN ─────────────────────────────────────────────────── -->
+<div class="main" style="position:relative;">
+
+  <!-- Radar canvas behind everything (Feature A) -->
+  <canvas id="radarCanvas"></canvas>
+
+  <!-- Topbar -->
+  <div class="topbar">
+    <button class="menu-btn" id="menuBtn">☰</button>
+    <div class="topbar-left">
+      <div class="waveform" id="topWave">
+        <span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+      </div>
+      <div class="topbar-title">Social Media Agent</div>
+    </div>
+    <div class="context-chip" id="contextChip">
+      <span id="chipPlatform">Instagram</span> · <span id="chipTone">Casual</span>
+    </div>
+    <div class="on-air" style="flex-shrink:0;"><div class="on-air-dot"></div> On Air</div>
+  </div>
+
+  <!-- Chat -->
+  <div class="chat-area" id="chatArea" style="position:relative; z-index:1;">
+    <div class="welcome" id="welcome">
+      <div class="welcome-icon">📡</div>
+      <h2>You're Live on the Feed</h2>
+      <p>Select your platform and tone, then describe what you need — captions, threads, hashtags, content calendars and more.</p>
+    </div>
+  </div>
+
+  <!-- Input bar -->
+  <div class="input-bar">
+    <div class="input-row">
+      <textarea id="msgInput" rows="1" placeholder="Describe your content need... (Enter to send, Shift+Enter for newline)"></textarea>
+      <button class="send-btn" id="sendBtn" title="Send">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+      </button>
+    </div>
+    <div class="input-meta">
+      <span class="char-count" id="charCount">0 chars</span>
+      <button class="regen-btn" id="regenBtn" title="Regenerate last response">↺ Regenerate</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ─── STATE ────────────────────────────────────────────────────────────────────
+const STATE = {
+  apiKey: '',
+  model: 'llama-3.3-70b-versatile',
+  platform: 'Instagram',
+  tone: 'Casual',
+  messages: [],   // {role, content}
+  totalTokens: 0,
+  msgCount: 0,
+  isLoading: false,
+  // Feature 2: analytics tracking
+  analytics: {
+    platformCounts: {},  // { 'Instagram': 3, 'X/Twitter': 1, … }
+    toneCounts: {},      // { 'Casual': 2, … }
+    msgTimeline: [],     // [ { minute: 'HH:MM', count: N }, … ] (by-minute buckets)
+  },
+};
+
+// ─── ELEMENTS ─────────────────────────────────────────────────────────────────
+const apiKeyInput  = document.getElementById('apiKeyInput');
+const eyeBtn       = document.getElementById('eyeBtn');
+const keyStatus    = document.getElementById('keyStatus');
+const modelSelect  = document.getElementById('modelSelect');
+const chatArea     = document.getElementById('chatArea');
+const welcome      = document.getElementById('welcome');
+const msgInput     = document.getElementById('msgInput');
+const sendBtn      = document.getElementById('sendBtn');
+const charCount    = document.getElementById('charCount');
+const regenBtn     = document.getElementById('regenBtn');
+const clearBtn     = document.getElementById('clearBtn');
+const exportBtn    = document.getElementById('exportBtn');
+const statMsgs     = document.getElementById('statMsgs');
+const statTokens   = document.getElementById('statTokens');
+const chipPlatform = document.getElementById('chipPlatform');
+const chipTone     = document.getElementById('chipTone');
+const menuBtn      = document.getElementById('menuBtn');
+const sidebar      = document.getElementById('sidebar');
+const overlay      = document.getElementById('overlay');
+const sideWave     = document.getElementById('sideWave');
+const topWave      = document.getElementById('topWave');
+
+// ─── SYSTEM PROMPT ────────────────────────────────────────────────────────────
+const BASE_SYSTEM = `You are Social Media Agent, an expert social media content assistant. Help users create, refine, and strategize social media content across platforms (Instagram, X/Twitter, LinkedIn, TikTok, Facebook).
+
+You can help with:
+- Writing captions, posts, and threads tailored to a platform's tone and character limits
+- Suggesting relevant hashtags (5-15 depending on platform norms)
+- Brainstorming content ideas and post calendars
+- Improving hooks, CTAs, and engagement-driving phrasing
+- Adapting one piece of content into multiple platform-specific versions
+- Giving basic best-practice tips (posting times, format choices, trends)
+
+Guidelines:
+- Ask which platform if it's not specified, since tone/length differ a lot
+- Keep captions concise and scannable; avoid corporate-sounding filler
+- Match the requested tone (funny, professional, casual, bold, etc.)
+- When asked for hashtags, mix broad and niche ones
+- Offer 2-3 variations when helpful, not just one option
+- Be direct and practical — skip generic disclaimers about 'social media strategy depends on many factors' unless truly relevant`;
+
+function buildSystemPrompt() {
+  return `${BASE_SYSTEM}\n\nCurrent context: Platform = ${STATE.platform} | Tone = ${STATE.tone}. Optimise all responses for ${STATE.platform} and write in a ${STATE.tone.toLowerCase()} tone.`;
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+function init() {
+  const saved = localStorage.getItem('sma_apikey');
+  if (saved) { apiKeyInput.value = saved; STATE.apiKey = saved; showKeyStatus(true); }
+
+  const savedHistory = localStorage.getItem('sma_history');
+  if (savedHistory) {
+    try {
+      const parsed = JSON.parse(savedHistory);
+      STATE.messages = parsed.messages || [];
+      STATE.totalTokens = parsed.totalTokens || 0;
+      STATE.msgCount = parsed.msgCount || 0;
+      updateStats();
+      STATE.messages.forEach(m => { if (m.role !== 'system') renderMessage(m.role, m.content, false); });
+      if (STATE.messages.length > 0) welcome.classList.add('hidden');
+    } catch(e) {}
+  }
+
+  setWaveIdle();
+}
+
+// ─── KEY MANAGEMENT ───────────────────────────────────────────────────────────
+apiKeyInput.addEventListener('input', () => {
+  STATE.apiKey = apiKeyInput.value.trim();
+  localStorage.setItem('sma_apikey', STATE.apiKey);
+  showKeyStatus(STATE.apiKey.length > 10);
+});
+
+eyeBtn.addEventListener('click', () => {
+  apiKeyInput.type = apiKeyInput.type === 'password' ? 'text' : 'password';
+  eyeBtn.textContent = apiKeyInput.type === 'password' ? '👁' : '🙈';
+});
+
+function showKeyStatus(ok) {
+  if (!apiKeyInput.value.trim()) { keyStatus.innerHTML = ''; return; }
+  keyStatus.className = 'key-status ' + (ok ? 'ok' : 'bad');
+  keyStatus.innerHTML = `<div class="key-status-dot"></div>${ok ? 'Key saved' : 'Key looks short'}`;
+}
+
+// ─── MODEL ────────────────────────────────────────────────────────────────────
+modelSelect.addEventListener('change', () => { STATE.model = modelSelect.value; });
+
+// ─── FEATURE 3: PLATFORM CHANNEL-CHANGE COLORS ───────────────────────────────
+const PLATFORM_COLORS = {
+  'Instagram':  { color: 'rgba(225,48,108,0.75)',  bgA: 'rgba(225,48,108,0.18)', bgB: 'rgba(255,149,0,0.12)',  topbarBg: 'rgba(225,48,108,0.07)',  topbarGlow: 'rgba(225,48,108,0.25)' },
+  'X/Twitter':  { color: 'rgba(100,180,255,0.80)', bgA: 'rgba(100,180,255,0.18)', bgB: 'rgba(60,140,220,0.12)', topbarBg: 'rgba(100,180,255,0.07)', topbarGlow: 'rgba(100,180,255,0.22)' },
+  'LinkedIn':   { color: 'rgba(10,102,194,0.80)',  bgA: 'rgba(10,102,194,0.20)', bgB: 'rgba(0,150,255,0.10)',   topbarBg: 'rgba(10,102,194,0.08)',  topbarGlow: 'rgba(10,102,194,0.28)' },
+  'TikTok':     { color: 'rgba(0,242,234,0.80)',   bgA: 'rgba(0,242,234,0.15)', bgB: 'rgba(254,44,85,0.12)',   topbarBg: 'rgba(0,242,234,0.06)',   topbarGlow: 'rgba(0,242,234,0.22)' },
+  'Facebook':   { color: 'rgba(24,119,242,0.78)',  bgA: 'rgba(24,119,242,0.18)', bgB: 'rgba(66,183,245,0.10)',  topbarBg: 'rgba(24,119,242,0.07)',  topbarGlow: 'rgba(24,119,242,0.24)' },
+};
+
+function triggerChannelChange(btn, platform) {
+  const c = PLATFORM_COLORS[platform];
+  if (!c) return;
+  const topbar = document.querySelector('.topbar');
+
+  // Set CSS vars on the button then animate
+  btn.style.setProperty('--ch-color',    c.color);
+  btn.style.setProperty('--ch-bg-a',     c.bgA);
+  btn.style.setProperty('--ch-bg-b',     c.bgB);
+  topbar.style.setProperty('--ch-topbar-bg',   c.topbarBg);
+  topbar.style.setProperty('--ch-topbar-glow', c.topbarGlow);
+
+  btn.classList.remove('channel-flash');
+  topbar.classList.remove('channel-wash');
+  // Force reflow to restart animation
+  void btn.offsetWidth;
+  void topbar.offsetWidth;
+  btn.classList.add('channel-flash');
+  topbar.classList.add('channel-wash');
+
+  // Remove classes after animation so they don't interfere
+  const cleanup = () => {
+    btn.classList.remove('channel-flash');
+    topbar.classList.remove('channel-wash');
+  };
+  btn.addEventListener('animationend', cleanup, { once: true });
+}
+
+// ─── PLATFORM + TONE ──────────────────────────────────────────────────────────
+document.querySelectorAll('.platform-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.platform-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    STATE.platform = btn.dataset.platform;
+    chipPlatform.textContent = STATE.platform;
+    triggerChannelChange(btn, STATE.platform);
+    updateInsightsPanel();  // Feature 2: refresh on platform switch
+  });
+});
+
+document.querySelectorAll('.tone-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tone-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    STATE.tone = btn.dataset.tone;
+    chipTone.textContent = STATE.tone;
+  });
+});
+
+// ─── QUICK PROMPTS ────────────────────────────────────────────────────────────
+document.querySelectorAll('.quick-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    msgInput.value = btn.dataset.prompt;
+    updateCharCount();
+    msgInput.focus();
+    if (window.innerWidth <= 680) closeSidebar();
+  });
+});
+
+// ─── MOBILE SIDEBAR ───────────────────────────────────────────────────────────
+menuBtn.addEventListener('click', () => { sidebar.classList.toggle('open'); overlay.classList.toggle('show'); });
+overlay.addEventListener('click', closeSidebar);
+function closeSidebar() { sidebar.classList.remove('open'); overlay.classList.remove('show'); }
+
+// ─── INPUT ────────────────────────────────────────────────────────────────────
+msgInput.addEventListener('input', () => { autoResize(); updateCharCount(); });
+msgInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+});
+
+function autoResize() {
+  msgInput.style.height = 'auto';
+  msgInput.style.height = Math.min(msgInput.scrollHeight, 160) + 'px';
+}
+
+function updateCharCount() {
+  const n = msgInput.value.length;
+  charCount.textContent = n + ' chars';
+  charCount.className = 'char-count' + (n > 2000 ? ' over' : n > 1500 ? ' warn' : '');
+}
+
+// ─── WAVEFORM ─────────────────────────────────────────────────────────────────
+function setWaveActive() {
+  sideWave.classList.remove('idle');
+  topWave.classList.remove('idle');
+}
+function setWaveIdle() {
+  sideWave.classList.add('idle');
+  topWave.classList.add('idle');
+}
+
+// ─── SIMPLE MARKDOWN RENDERER ─────────────────────────────────────────────────
+function renderMarkdown(text) {
+  let h = text
+    // Code blocks
+    .replace(/```[\s\S]*?```/g, m => {
+      const lang = m.match(/```(\w*)/)?.[1] || '';
+      const code = m.replace(/```\w*\n?/, '').replace(/```$/, '');
+      return `<pre><code>${escHtml(code.trim())}</code></pre>`;
+    })
+    // Inline code
+    .replace(/`([^`]+)`/g, (_, c) => `<code>${escHtml(c)}</code>`)
+    // Bold
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    // Italic
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    // Headings
+    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+    .replace(/^## (.+)$/gm,  '<h2>$1</h2>')
+    .replace(/^# (.+)$/gm,   '<h1>$1</h1>')
+    // HR
+    .replace(/^---$/gm, '<hr>')
+    // Blockquotes
+    .replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>')
+    // Unordered lists
+    .replace(/^\s*[-*] (.+)$/gm, '<li>$1</li>')
+    .replace(/(<li>[\s\S]+?<\/li>)/g, '<ul>$1</ul>')
+    // Numbered lists
+    .replace(/^\d+\. (.+)$/gm, '<li>$1</li>')
+    // Paragraphs (lines not already wrapped)
+    .split('\n\n')
+    .map(block => {
+      block = block.trim();
+      if (!block) return '';
+      if (/^<(h[1-3]|ul|ol|blockquote|pre|hr)/.test(block)) return block;
+      return '<p>' + block.replace(/\n/g, '<br>') + '</p>';
+    })
+    .join('\n');
+  return h;
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ─── FEATURE 2 (retained): TYPEWRITER RENDERER ───────────────────────────────
+function typewriterRender(bubble, rawText, onDone) {
+  const words = rawText.split(/(\s+)/);
+  const useWords = words.length > 80;
+  const tokens = useWords ? words : rawText.split('');
+  const delay  = useWords ? 38 : 18;
+
+  bubble.classList.add('typing-active');
+  const cursor = document.createElement('span');
+  cursor.className = 'tw-cursor';
+  bubble.appendChild(cursor);
+  let idx = 0;
+  let accumulated = '';
+
+  function tick() {
+    if (idx >= tokens.length) {
+      bubble.classList.remove('typing-active');
+      cursor.remove();
+      bubble.innerHTML = renderMarkdown(rawText);
+      if (onDone) onDone();
+      return;
+    }
+    const batchSize = useWords ? 2 : 3;
+    for (let b = 0; b < batchSize && idx < tokens.length; b++, idx++) {
+      accumulated += tokens[idx];
+    }
+    bubble.innerHTML = accumulated
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/\n/g, '<br>');
+    bubble.appendChild(cursor);
+    scrollBottom();
+    setTimeout(tick, delay);
+  }
+  tick();
+}
+
+// ─── FEATURE B: GLITCH-TO-CLARITY REVEAL ─────────────────────────────────────
+// Draws scan-static noise onto a canvas overlay atop the bubble,
+// then dissolves the canvas away while the real HTML content fades in.
+function glitchReveal(bubble, rawText, onDone) {
+  // 1. Render final markdown into a hidden inner div immediately (for layout)
+  const inner = document.createElement('div');
+  inner.className = 'bubble-inner';
+  inner.innerHTML = renderMarkdown(rawText);
+  bubble.appendChild(inner);
+  bubble.classList.remove('glitch-pending');
+  bubble.classList.add('glitch-revealing');
+  bubble.style.visibility = 'visible';
+
+  // 2. Measure bubble, create canvas overlay
+  const wrap = document.createElement('div');
+  wrap.className = 'glitch-canvas-wrap';
+  const cvs = document.createElement('canvas');
+  wrap.appendChild(cvs);
+  bubble.appendChild(wrap);
+
+  // Wait one frame for layout to settle so offsetWidth/Height are correct
+  requestAnimationFrame(() => {
+    const W = bubble.offsetWidth  || 300;
+    const H = bubble.offsetHeight || 100;
+    cvs.width  = W;
+    cvs.height = H;
+    const ctx = cvs.getContext('2d');
+
+    const RED   = '#e8003d';
+    const AMBER = '#ff6b35';
+    const BG    = '#252530';
+
+    // Glitch chars pool — broadcast/signal flavour
+    const CHARS = '█▓▒░|/\\—_=+#@$%&*<>?!01';
+
+    let frame = 0;
+    // Total duration: ~900ms at 60fps ≈ 54 frames
+    // Phase 1 (0–30 frames): heavy static fills canvas
+    // Phase 2 (30–54 frames): static dissolves (alpha drops), lines clear top→bottom
+    const PHASE1 = 30;
+    const TOTAL  = 54;
+
+    function drawFrame() {
+      const progress = frame / TOTAL;          // 0→1
+      const phase2   = Math.max(0, (frame - PHASE1) / (TOTAL - PHASE1)); // 0→1
+
+      ctx.clearRect(0, 0, W, H);
+
+      // ── Panel background ─────────────────────────────────────────────
+      ctx.fillStyle = BG;
+      ctx.fillRect(0, 0, W, H);
+
+      // ── Scan-line static ─────────────────────────────────────────────
+      const lineH = 13;
+      const cols  = Math.ceil(W / 7);
+      const rows  = Math.ceil(H / lineH);
+      ctx.font = `bold ${lineH - 1}px 'JetBrains Mono', monospace`;
+
+      for (let r = 0; r < rows; r++) {
+        // In phase 2, lines dissolve top-to-bottom
+        const revealThreshold = phase2 * (rows + 2);
+        if (r < revealThreshold - 1) continue;       // fully revealed
+        const alpha = r < revealThreshold ? (1 - (revealThreshold - r)) : 1;
+
+        for (let c = 0; c < cols; c++) {
+          const ch = CHARS[Math.floor(Math.random() * CHARS.length)];
+          // Colour: mostly muted, occasional red/amber flashes
+          const rnd = Math.random();
+          ctx.globalAlpha = alpha * (0.6 + Math.random() * 0.4);
+          ctx.fillStyle = rnd < 0.04 ? RED : rnd < 0.09 ? AMBER : '#3a3a4a';
+          ctx.fillText(ch, c * 7, r * lineH + lineH - 2);
+        }
+      }
+      ctx.globalAlpha = 1;
+
+      // ── Horizontal scan-bar sweep (phase 1 only) ─────────────────────
+      if (frame < PHASE1) {
+        const sweepY = (frame / PHASE1) * H;
+        const grad = ctx.createLinearGradient(0, sweepY - 12, 0, sweepY + 4);
+        grad.addColorStop(0, 'rgba(232,0,61,0)');
+        grad.addColorStop(0.5, 'rgba(232,0,61,0.35)');
+        grad.addColorStop(1, 'rgba(232,0,61,0)');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, sweepY - 12, W, 16);
+      }
+
+      // ── RGB-split ghost (phase 1, dramatic frames) ────────────────────
+      if (frame < PHASE1 && frame % 4 < 2) {
+        ctx.globalAlpha = 0.18;
+        ctx.fillStyle = 'rgba(232,0,61,1)';
+        ctx.fillRect(Math.random() * 6 - 3, 0, W, H);
+        ctx.fillStyle = 'rgba(0,200,255,1)';
+        ctx.fillRect(-(Math.random() * 6 - 3), 0, W, H);
+        ctx.globalAlpha = 1;
+      }
+
+      frame++;
+      if (frame < TOTAL) {
+        requestAnimationFrame(drawFrame);
+      } else {
+        // Done — fade canvas wrap out, reveal inner text
+        wrap.style.transition = 'opacity 0.18s ease';
+        wrap.style.opacity = '0';
+        bubble.classList.remove('glitch-revealing');
+        bubble.classList.add('glitch-done');
+        setTimeout(() => {
+          wrap.remove();
+          if (onDone) onDone();
+        }, 200);
+      }
+    }
+
+    drawFrame();
+    scrollBottom();
+  });
+}
+
+// ─── FEATURE 1: POST PREVIEW MOCKUP ──────────────────────────────────────────
+
+/** Extract plain text from raw markdown for use inside mock cards */
+function extractPlainText(md) {
+  return md
+    .replace(/```[\s\S]*?```/g, '')
+    .replace(/`([^`]+)`/g, '$1')
+    .replace(/\*\*(.+?)\*\*/g, '$1')
+    .replace(/\*(.+?)\*/g, '$1')
+    .replace(/^#{1,3} (.+)$/gm, '$1')
+    .replace(/^> (.+)$/gm, '$1')
+    .replace(/^\s*[-*] /gm, '• ')
+    .replace(/^\d+\. /gm, '')
+    .trim();
+}
+
+/** Detect whether the response looks like a caption / post (not just explanation) */
+function looksLikePost(text) {
+  const plain = extractPlainText(text);
+  // Heuristic: contains hashtags, emoji, or a short punchy line; not purely a list of tips
+  return /[#📸🎵💼📘𝕏✨🔥🚀💡❤️]/.test(plain)
+    || plain.length < 800
+    || /caption|post|tweet|thread/i.test(plain);
+}
+
+/** Pull the first "post body" from the reply — first paragraph or first 280 chars */
+function extractPostBody(md) {
+  const plain = extractPlainText(md);
+  // Take up to the first double-newline separator, or 400 chars
+  const firstBlock = plain.split(/\n{2,}/)[0].trim();
+  return firstBlock.length > 400 ? firstBlock.slice(0, 397) + '…' : firstBlock;
+}
+
+/** Extract hashtags from text */
+function extractHashtags(text) {
+  const tags = text.match(/#[\w]+/g) || [];
+  return tags.slice(0, 8).join(' ');
+}
+
+/** Render platform-specific mockup HTML */
+function buildMockHTML(platform, content) {
+  const body    = extractPostBody(content);
+  const tags    = extractHashtags(content);
+  const esc     = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const bodyEsc = esc(body);
+  const tagsEsc = esc(tags);
+
+  switch (platform) {
+    case 'Instagram': return `
+      <div class="mock-ig">
+        <div class="ig-header">
+          <div class="ig-av">U</div>
+          <div><div class="ig-name">your_account</div><div class="ig-sub">Sponsored</div></div>
+        </div>
+        <div class="ig-img">🖼</div>
+        <div class="ig-actions">❤️ 💬 ✈️ <span style="margin-left:auto">🔖</span></div>
+        <div class="ig-likes">2,481 likes</div>
+        <div class="ig-caption"><b>your_account</b> ${bodyEsc}</div>
+        ${tagsEsc ? `<div class="ig-tags">${tagsEsc}</div>` : ''}
+        <div class="ig-time">2 hours ago</div>
+      </div>`;
+
+    case 'X/Twitter': return `
+      <div class="mock-tw">
+        <div class="tw-card">
+          <div class="tw-header">
+            <div class="tw-av">U</div>
+            <div><div class="tw-name">Your Name</div><div class="tw-handle">@yourhandle</div></div>
+            <div class="tw-x">𝕏</div>
+          </div>
+          <div class="tw-body">${bodyEsc}</div>
+          <div class="tw-actions">
+            <span>💬 <span>14</span></span>
+            <span>🔁 <span>32</span></span>
+            <span>❤️ <span>218</span></span>
+            <span>📊 <span>4.1K</span></span>
+          </div>
+          <div class="tw-time">9:41 AM · Today</div>
+        </div>
+      </div>`;
+
+    case 'LinkedIn': return `
+      <div class="mock-li">
+        <div class="li-header">
+          <div class="li-av">U</div>
+          <div><div class="li-name">Your Name</div><div class="li-title">Your Title · 1st</div></div>
+          <div class="li-follow">+ Follow</div>
+        </div>
+        <div class="li-body">${bodyEsc}</div>
+        <div class="li-img">🖼</div>
+        <div style="padding:6px 14px;font-size:12px;color:#666;">👍 ❤️ 💡  <span style="float:right">47 comments</span></div>
+        <div class="li-actions">
+          <div class="li-act">👍 Like</div>
+          <div class="li-act">💬 Comment</div>
+          <div class="li-act">↗️ Repost</div>
+          <div class="li-act">✉️ Send</div>
+        </div>
+      </div>`;
+
+    case 'TikTok': return `
+      <div class="mock-tt">
+        <div class="tt-video">
+          🎬
+          <div class="tt-side">
+            <div class="tt-side-av">U</div>
+            <div class="tt-icon">❤️<span>24.1K</span></div>
+            <div class="tt-icon">💬<span>341</span></div>
+            <div class="tt-icon">↗️<span>Share</span></div>
+          </div>
+        </div>
+        <div class="tt-bottom">
+          <div class="tt-user">@yourhandle</div>
+          <div class="tt-cap">${bodyEsc}</div>
+        </div>
+      </div>`;
+
+    case 'Facebook': return `
+      <div class="mock-fb">
+        <div class="fb-header">
+          <div class="fb-av">U</div>
+          <div><div class="fb-name">Your Page</div><div class="fb-time">📍 Just now · 🌐</div></div>
+        </div>
+        <div class="fb-body">${bodyEsc}</div>
+        <div class="fb-img">🖼</div>
+        <div class="fb-reactions">👍 ❤️ 😂 &nbsp; 312 reactions &nbsp;·&nbsp; 47 comments</div>
+        <div class="fb-actions">
+          <div class="fb-act">👍 Like</div>
+          <div class="fb-act">💬 Comment</div>
+          <div class="fb-act">↗️ Share</div>
+        </div>
+      </div>`;
+
+    default: return '';
+  }
+}
+
+/** Render a preview mockup card below a bot bubble */
+function renderPostPreview(platform, content, insertAfterEl) {
+  if (!looksLikePost(content)) return;
+
+  const wrap = document.createElement('div');
+  wrap.className = 'preview-wrap';
+
+  // Toggle row
+  const toggleRow = document.createElement('div');
+  toggleRow.className = 'preview-toggle-row';
+
+  const toggleBtn = document.createElement('button');
+  toggleBtn.className = 'preview-toggle-btn';
+  toggleBtn.innerHTML = '<span class="ptb-dot"></span> Preview Post';
+  toggleRow.appendChild(toggleBtn);
+  wrap.appendChild(toggleRow);
+
+  // Card container
+  const card = document.createElement('div');
+  card.className = 'mock-card';
+  card.innerHTML = buildMockHTML(platform, content);
+
+  // Download button (canvas-based PNG export)
+  const dlBtn = document.createElement('button');
+  dlBtn.className = 'mock-dl-btn';
+  dlBtn.textContent = '⬇ Download as PNG';
+  dlBtn.addEventListener('click', () => exportMockAsPng(card, platform));
+  card.appendChild(dlBtn);
+
+  wrap.appendChild(card);
+
+  toggleBtn.addEventListener('click', () => {
+    const isOpen = card.classList.toggle('show');
+    toggleBtn.classList.toggle('active', isOpen);
+    toggleBtn.innerHTML = isOpen
+      ? '<span class="ptb-dot"></span> Hide Preview'
+      : '<span class="ptb-dot"></span> Preview Post';
+    if (isOpen) scrollBottom();
+  });
+
+  // Insert after the bot message row
+  insertAfterEl.insertAdjacentElement('afterend', wrap);
+
+  // Animate in after a short delay
+  requestAnimationFrame(() => requestAnimationFrame(() => wrap.classList.add('visible')));
+}
+
+/** Export a mock card element as a PNG by drawing it onto a canvas */
+function exportMockAsPng(cardEl, platform) {
+  // Reveal card if hidden (for measurement)
+  const wasHidden = !cardEl.classList.contains('show');
+  cardEl.classList.add('show');
+
+  const W = cardEl.scrollWidth;
+  const H = cardEl.scrollHeight;
+  const cvs = document.createElement('canvas');
+  const DPR = window.devicePixelRatio || 1;
+  cvs.width  = W * DPR;
+  cvs.height = H * DPR;
+  const ctx = cvs.getContext('2d');
+  ctx.scale(DPR, DPR);
+
+  // Draw white background
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, W, H);
+
+  // Use foreignObject via SVG blob to rasterise the HTML card
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const svgEl = document.createElementNS(svgNS, 'svg');
+  svgEl.setAttribute('xmlns', svgNS);
+  svgEl.setAttribute('width', W);
+  svgEl.setAttribute('height', H);
+
+  // Snapshot computed styles for the card + children
+  const fo = document.createElementNS(svgNS, 'foreignObject');
+  fo.setAttribute('width', W);
+  fo.setAttribute('height', H);
+
+  // Clone the card WITHOUT the download button for export
+  const clone = cardEl.cloneNode(true);
+  const dlClone = clone.querySelector('.mock-dl-btn');
+  if (dlClone) dlClone.remove();
+  clone.style.margin = '0';
+  clone.style.borderRadius = '0';
+  clone.setAttribute('xmlns', 'http://www.w3.org/1999/xhtml');
+  fo.appendChild(clone);
+  svgEl.appendChild(fo);
+
+  const svgStr = new XMLSerializer().serializeToString(svgEl);
+  const svgBlob = new Blob([svgStr], { type: 'image/svg+xml;charset=utf-8' });
+  const url = URL.createObjectURL(svgBlob);
+  const img = new Image();
+  img.onload = () => {
+    ctx.drawImage(img, 0, 0, W, H);
+    URL.revokeObjectURL(url);
+    const a = document.createElement('a');
+    a.download = `sma-preview-${platform.replace(/\//g,'-')}-${Date.now()}.png`;
+    a.href = cvs.toDataURL('image/png');
+    a.click();
+    if (wasHidden) cardEl.classList.remove('show');
+  };
+  img.onerror = () => {
+    URL.revokeObjectURL(url);
+    alert('PNG export not supported in this browser. Try right-click → Save Image on the card.');
+    if (wasHidden) cardEl.classList.remove('show');
+  };
+  img.src = url;
+}
+
+// ─── RENDER MESSAGE ───────────────────────────────────────────────────────────
+function renderMessage(role, content, animate = true, useTypewriter = false) {
+  welcome.classList.add('hidden');
+
+  const div = document.createElement('div');
+  div.className = `msg ${role}`;
+  if (animate) { div.style.opacity = '0'; div.style.transform = 'translateY(8px)'; div.style.transition = 'opacity 0.25s, transform 0.25s'; }
+
+  const avatarEl = document.createElement('div');
+  avatarEl.className = 'avatar';
+  avatarEl.textContent = role === 'user' ? 'U' : '📡';
+
+  const bubble = document.createElement('div');
+  bubble.className = 'bubble';
+
+  if (role === 'assistant' && useTypewriter) {
+    // Use glitch reveal (Feature B) for new live bot responses
+    bubble.classList.add('glitch-pending');
+    bubble.style.visibility = 'hidden';
+
+    div.appendChild(avatarEl);
+    div.appendChild(bubble);
+    chatArea.appendChild(div);
+
+    if (animate) {
+      requestAnimationFrame(() => {
+        div.style.opacity = '1';
+        div.style.transform = 'translateY(0)';
+      });
+    }
+
+    // Helper to build copy actions div
+    const makeCopyActions = () => {
+      const actions = document.createElement('div');
+      actions.className = 'bubble-actions';
+      const copyBtn = document.createElement('button');
+      copyBtn.className = 'bub-btn';
+      copyBtn.innerHTML = '⎘ Copy';
+      copyBtn.addEventListener('click', () => {
+        navigator.clipboard.writeText(content).then(() => {
+          copyBtn.className = 'bub-btn copied';
+          copyBtn.innerHTML = '✓ Copied';
+          setTimeout(() => { copyBtn.className = 'bub-btn'; copyBtn.innerHTML = '⎘ Copy'; }, 2000);
+        });
+      });
+      actions.appendChild(copyBtn);
+      return actions;
+    };
+
+    glitchReveal(bubble, content, () => {
+      bubble.appendChild(makeCopyActions());
+      scrollBottom();
+      // Feature 1: inject preview mockup after glitch finishes
+      renderPostPreview(STATE.platform, content, div);
+    });
+
+    scrollBottom();
+    return div;
+  }
+
+  // Non-typewriter path (user messages, history replay)
+  bubble.innerHTML = renderMarkdown(content);
+
+  if (role === 'assistant') {
+    const actions = document.createElement('div');
+    actions.className = 'bubble-actions';
+
+    const copyBtn = document.createElement('button');
+    copyBtn.className = 'bub-btn';
+    copyBtn.innerHTML = '⎘ Copy';
+    copyBtn.addEventListener('click', () => {
+      navigator.clipboard.writeText(content).then(() => {
+        copyBtn.className = 'bub-btn copied';
+        copyBtn.innerHTML = '✓ Copied';
+        setTimeout(() => { copyBtn.className = 'bub-btn'; copyBtn.innerHTML = '⎘ Copy'; }, 2000);
+      });
+    });
+    actions.appendChild(copyBtn);
+    bubble.appendChild(actions);
+  }
+
+  div.appendChild(avatarEl);
+  div.appendChild(bubble);
+  chatArea.appendChild(div);
+
+  if (animate) {
+    requestAnimationFrame(() => {
+      div.style.opacity = '1';
+      div.style.transform = 'translateY(0)';
+    });
+  }
+
+  scrollBottom();
+  return div;
+}
+
+function renderError(msg) {
+  const div = document.createElement('div');
+  div.className = 'error-msg';
+  div.innerHTML = `<strong>⚠ Error:</strong> ${escHtml(msg)}`;
+  chatArea.appendChild(div);
+  scrollBottom();
+  return div;
+}
+
+function showTyping() {
+  const div = document.createElement('div');
+  div.className = 'typing-indicator';
+  div.id = 'typingIndicator';
+  const av = document.createElement('div');
+  av.className = 'avatar';
+  av.style.background = 'linear-gradient(135deg, var(--red), var(--amber))';
+  av.style.color = '#fff';
+  av.textContent = '📡';
+  const dots = document.createElement('div');
+  dots.className = 'typing-dots';
+  dots.innerHTML = '<span></span><span></span><span></span>';
+  div.appendChild(av);
+  div.appendChild(dots);
+  chatArea.appendChild(div);
+  scrollBottom();
+}
+
+function hideTyping() {
+  const el = document.getElementById('typingIndicator');
+  if (el) el.remove();
+}
+
+function scrollBottom() {
+  chatArea.scrollTo({ top: chatArea.scrollHeight, behavior: 'smooth' });
+}
+
+// ─── STATS ────────────────────────────────────────────────────────────────────
+function updateStats() {
+  statMsgs.textContent = STATE.msgCount;
+  statTokens.textContent = STATE.totalTokens > 999
+    ? (STATE.totalTokens / 1000).toFixed(1) + 'k'
+    : STATE.totalTokens;
+}
+
+function persistHistory() {
+  localStorage.setItem('sma_history', JSON.stringify({
+    messages: STATE.messages,
+    totalTokens: STATE.totalTokens,
+    msgCount: STATE.msgCount,
+  }));
+}
+
+// ─── SEND MESSAGE ─────────────────────────────────────────────────────────────
+async function sendMessage(overrideContent) {
+  if (STATE.isLoading) return;
+  const text = (overrideContent || msgInput.value).trim();
+  if (!text) return;
+
+  if (!STATE.apiKey) {
+    renderError('No API key set. Enter your Groq API key in the sidebar.');
+    return;
+  }
+
+  // Clear input
+  if (!overrideContent) { msgInput.value = ''; autoResize(); updateCharCount(); }
+
+  // Show user message
+  renderMessage('user', text);
+  STATE.messages.push({ role: 'user', content: text });
+  STATE.msgCount++;
+
+  STATE.isLoading = true;
+  sendBtn.disabled = true;
+  setWaveActive();
+  radarStart();   // Feature A: start radar sweep
+  showTyping();
+
+  const payload = {
+    model: STATE.model,
+    messages: [
+      { role: 'system', content: buildSystemPrompt() },
+      ...STATE.messages
+    ],
+    temperature: 0.8,
+    max_tokens: 1024,
+  };
+
+  try {
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${STATE.apiKey}`,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      const errMsg = data?.error?.message || `HTTP ${res.status}: ${res.statusText}`;
+      hideTyping();
+      renderError(errMsg.includes('401') || errMsg.includes('auth')
+        ? 'Invalid API key. Check your Groq key in the sidebar.'
+        : errMsg.includes('429') ? 'Rate limit hit. Wait a moment and try again.'
+        : errMsg.includes('network') ? 'Network error. Check your connection.'
+        : errMsg);
+    } else {
+      const reply = data.choices?.[0]?.message?.content || '(empty response)';
+      const tokens = data.usage?.total_tokens || 0;
+      hideTyping();
+      radarStop();                                    // Feature A: stop radar
+      renderMessage('assistant', reply, true, true);  // Feature B: glitch reveal
+      STATE.messages.push({ role: 'assistant', content: reply });
+      STATE.totalTokens += tokens;
+      STATE.msgCount++;
+      updateStats();
+      persistHistory();
+      checkMilestone();                               // Feature C: burst check
+      // Feature 2: record analytics
+      const p = STATE.platform;
+      const t = STATE.tone;
+      const a = STATE.analytics;
+      a.platformCounts[p] = (a.platformCounts[p] || 0) + 1;
+      a.toneCounts[t]     = (a.toneCounts[t]     || 0) + 1;
+      const nowMin = new Date().toTimeString().slice(0,5);
+      const last = a.msgTimeline[a.msgTimeline.length - 1];
+      if (last && last.minute === nowMin) { last.count++; }
+      else { a.msgTimeline.push({ minute: nowMin, count: 1 }); }
+      updateInsightsPanel();
+    }
+  } catch(err) {
+    hideTyping();
+    radarStop();                                      // Feature A: stop on error too
+    renderError('Network error: ' + (err.message || 'Could not reach the API.'));
+  } finally {
+    STATE.isLoading = false;
+    sendBtn.disabled = false;
+    setWaveIdle();
+  }
+}
+
+sendBtn.addEventListener('click', () => sendMessage());
+
+// ─── REGENERATE ───────────────────────────────────────────────────────────────
+regenBtn.addEventListener('click', async () => {
+  if (STATE.isLoading) return;
+  // Remove last assistant message
+  const lastAssistant = [...STATE.messages].reverse().findIndex(m => m.role === 'assistant');
+  if (lastAssistant === -1) return;
+  const idx = STATE.messages.length - 1 - lastAssistant;
+  STATE.messages.splice(idx, 1);
+  STATE.msgCount = Math.max(0, STATE.msgCount - 1);
+
+  // Remove from DOM
+  const bubbles = chatArea.querySelectorAll('.msg.bot');
+  if (bubbles.length > 0) bubbles[bubbles.length - 1].remove();
+
+  // Re-send without adding user message again
+  const lastUser = [...STATE.messages].reverse().find(m => m.role === 'user');
+  if (!lastUser) return;
+  STATE.messages.pop(); // remove from state temporarily
+  STATE.msgCount = Math.max(0, STATE.msgCount - 1);
+
+  // Remove last user bubble from DOM
+  const userBubbles = chatArea.querySelectorAll('.msg.user');
+  if (userBubbles.length > 0) userBubbles[userBubbles.length - 1].remove();
+
+  await sendMessage(lastUser.content);
+});
+
+// ─── CLEAR ────────────────────────────────────────────────────────────────────
+clearBtn.addEventListener('click', () => {
+  if (!confirm('Clear the full chat history?')) return;
+  STATE.messages = [];
+  STATE.totalTokens = 0;
+  STATE.msgCount = 0;
+  STATE.analytics = { platformCounts:{}, toneCounts:{}, msgTimeline:[] };
+  chatArea.innerHTML = '';
+  chatArea.appendChild(welcome);
+  welcome.classList.remove('hidden');
+  updateStats();
+  updateInsightsPanel();
+  localStorage.removeItem('sma_history');
+});
+
+// ─── EXPORT ───────────────────────────────────────────────────────────────────
+exportBtn.addEventListener('click', () => {
+  if (STATE.messages.length === 0) { alert('Nothing to export yet.'); return; }
+  const lines = [`# Social Media Agent — Chat Export\n_Exported: ${new Date().toLocaleString()}_\n_Platform: ${STATE.platform} | Tone: ${STATE.tone} | Model: ${STATE.model}_\n\n---\n`];
+  STATE.messages.forEach(m => {
+    const label = m.role === 'user' ? '**You**' : '**Social Media Agent**';
+    lines.push(`${label}\n${m.content}\n`);
+  });
+  lines.push(`\n---\n_Total tokens used: ${STATE.totalTokens}_`);
+  const blob = new Blob([lines.join('\n')], { type: 'text/markdown' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `SMA-chat-${Date.now()}.md`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+});
+
+// ─── FEATURE 2: SESSION INSIGHTS ─────────────────────────────────────────────
+(function initInsights() {
+  const toggleBtn  = document.getElementById('insightsToggleBtn');
+  const body       = document.getElementById('insightsBody');
+
+  toggleBtn.addEventListener('click', () => {
+    const isOpen = body.classList.toggle('open');
+    toggleBtn.classList.toggle('open', isOpen);
+    if (isOpen) updateInsightsPanel();
+  });
+
+  // Colour palettes for charts
+  const DONUT_COLORS = [
+    '#e8003d','#ff6b35','#c084fc','#4caf7d','#64b4ff','#f0c040',
+  ];
+
+  function drawDonut(svgId, legendId, counts) {
+    const svg    = document.getElementById(svgId);
+    const legend = document.getElementById(legendId);
+    if (!svg || !legend) return;
+
+    svg.innerHTML = '';
+    legend.innerHTML = '';
+
+    const entries = Object.entries(counts).sort((a,b) => b[1]-a[1]);
+    const total   = entries.reduce((s,[,v]) => s+v, 0);
+    if (total === 0) {
+      svg.innerHTML = `<circle cx="45" cy="45" r="30" fill="none" stroke="#2e2e3a" stroke-width="12"/>
+        <text x="45" y="50" text-anchor="middle" fill="#8888a0" font-size="9" font-family="Barlow Condensed,sans-serif">No data</text>`;
+      return;
+    }
+
+    const CX = 45, CY = 45, R = 30, SW = 12;
+    const CIRC = 2 * Math.PI * R;
+
+    // Background ring
+    svg.innerHTML = `<circle cx="${CX}" cy="${CY}" r="${R}" fill="none" stroke="#2e2e3a" stroke-width="${SW}"/>`;
+
+    let offset = 0; // dashoffset tracks position (start from top = -CIRC/4)
+    let startAngle = -Math.PI / 2;
+
+    entries.forEach(([name, count], i) => {
+      const pct    = count / total;
+      const arc    = pct * CIRC;
+      const color  = DONUT_COLORS[i % DONUT_COLORS.length];
+
+      const circle = document.createElementNS('http://www.w3.org/2000/svg','circle');
+      circle.setAttribute('cx', CX);
+      circle.setAttribute('cy', CY);
+      circle.setAttribute('r', R);
+      circle.setAttribute('fill', 'none');
+      circle.setAttribute('stroke', color);
+      circle.setAttribute('stroke-width', SW);
+      circle.setAttribute('stroke-dasharray', `${arc} ${CIRC - arc}`);
+      circle.setAttribute('stroke-dashoffset', CIRC - offset);
+      // Animate: start collapsed, expand to target
+      circle.style.transition = 'stroke-dasharray 0.5s cubic-bezier(0.25,1,0.5,1)';
+      svg.appendChild(circle);
+      offset += arc;
+
+      // Legend row
+      const item = document.createElement('div');
+      item.className = 'ins-legend-item';
+      item.innerHTML = `<span class="ins-legend-dot" style="background:${color}"></span>
+        <span class="ins-legend-name" title="${escHtml(name)}">${escHtml(name)}</span>
+        <span class="ins-legend-pct">${Math.round(pct*100)}%</span>`;
+      legend.appendChild(item);
+    });
+
+    // Centre label: total
+    const txt = document.createElementNS('http://www.w3.org/2000/svg','text');
+    txt.setAttribute('x', CX); txt.setAttribute('y', CY - 3);
+    txt.setAttribute('text-anchor','middle');
+    txt.setAttribute('fill','#f0f0f5');
+    txt.setAttribute('font-size','13');
+    txt.setAttribute('font-weight','700');
+    txt.setAttribute('font-family','Barlow Condensed,sans-serif');
+    txt.textContent = total;
+    svg.appendChild(txt);
+    const sub = document.createElementNS('http://www.w3.org/2000/svg','text');
+    sub.setAttribute('x', CX); sub.setAttribute('y', CY + 9);
+    sub.setAttribute('text-anchor','middle');
+    sub.setAttribute('fill','#8888a0');
+    sub.setAttribute('font-size','7.5');
+    sub.setAttribute('font-family','Barlow Condensed,sans-serif');
+    sub.textContent = 'total';
+    svg.appendChild(sub);
+  }
+
+  function drawBarChart(containerEl, timeline) {
+    containerEl.innerHTML = '';
+    if (!timeline || timeline.length === 0) {
+      containerEl.innerHTML = '<div class="ins-empty">No data yet</div>';
+      return;
+    }
+    const maxCount = Math.max(...timeline.map(b => b.count), 1);
+    // Show last 10 buckets max
+    const visible = timeline.slice(-10);
+    visible.forEach(({ minute, count }) => {
+      const pct = (count / maxCount) * 100;
+      const row = document.createElement('div');
+      row.className = 'ins-bar-row';
+      row.innerHTML = `
+        <div class="ins-bar-label">${minute}</div>
+        <div class="ins-bar-track"><div class="ins-bar-fill" style="width:0%"></div></div>
+        <div class="ins-bar-count">${count}</div>`;
+      containerEl.appendChild(row);
+      // Animate fill after paint
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        const fill = row.querySelector('.ins-bar-fill');
+        if (fill) fill.style.width = pct + '%';
+      }));
+    });
+  }
+
+  window.updateInsightsPanel = function() {
+    const a = STATE.analytics;
+
+    // KPIs (mirror existing stat elements)
+    const kpiMsgs   = document.getElementById('insKpiMsgs');
+    const kpiTokens = document.getElementById('insKpiTokens');
+    if (kpiMsgs)   kpiMsgs.textContent   = STATE.msgCount;
+    if (kpiTokens) kpiTokens.textContent = STATE.totalTokens > 999
+      ? (STATE.totalTokens/1000).toFixed(1)+'k' : STATE.totalTokens;
+
+    // Only redraw if panel is open (perf)
+    if (!body.classList.contains('open')) return;
+
+    drawDonut('donutPlatform', 'legendPlatform', a.platformCounts);
+    drawDonut('donutTone',     'legendTone',     a.toneCounts);
+    drawBarChart(document.getElementById('msgBarChart'), a.msgTimeline);
+  };
+
+  // Initial render
+  window.updateInsightsPanel();
+})();
+
+// ─── FEATURE A: RADAR SWEEP ───────────────────────────────────────────────────
+(function initRadar() {
+  const cvs = document.getElementById('radarCanvas');
+  const main = cvs.parentElement; // .main
+  let rafId = null;
+  let angle = 0;
+
+  function resize() {
+    cvs.width  = main.offsetWidth;
+    cvs.height = main.offsetHeight;
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  function drawRadar() {
+    resize();
+    const W = cvs.width;
+    const H = cvs.height;
+    const ctx = cvs.getContext('2d');
+    const cx = W / 2;
+    const cy = H / 2;
+    const R  = Math.sqrt(cx * cx + cy * cy) * 1.1; // reach corners
+
+    ctx.clearRect(0, 0, W, H);
+
+    // ── Very subtle grid circles ──────────────────────────────────────
+    ctx.strokeStyle = 'rgba(232,0,61,0.045)';
+    ctx.lineWidth = 1;
+    for (let r = R * 0.25; r <= R; r += R * 0.25) {
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    // Cross-hairs
+    ctx.beginPath();
+    ctx.moveTo(cx - R, cy); ctx.lineTo(cx + R, cy);
+    ctx.moveTo(cx, cy - R); ctx.lineTo(cx, cy + R);
+    ctx.stroke();
+
+    // ── Sweep beam — arc sector "pie slice" swept SWEEP radians ──────
+    const SWEEP = Math.PI * 0.38; // width of the beam arc
+
+    ctx.save();
+    ctx.translate(cx, cy);
+
+    // Trailing fade: draw several sectors of decreasing opacity
+    const steps = 14;
+    for (let i = 0; i < steps; i++) {
+      const frac    = i / steps;
+      const alpha   = (1 - frac) * 0.13;   // max 13% opacity — very subtle
+      const startA  = angle - SWEEP * frac;
+      const endA    = angle - SWEEP * (frac + 1 / steps);
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.arc(0, 0, R, startA, endA, true);
+      ctx.closePath();
+      // Blend red→amber across the sweep
+      const mix = frac;
+      const r = Math.round(232 + (255 - 232) * mix);
+      const g = Math.round(0   + (107 - 0)   * mix);
+      const b = Math.round(61  + (53  - 61)  * mix);
+      ctx.fillStyle = `rgba(${r},${g},${b},${alpha})`;
+      ctx.fill();
+    }
+
+    // Leading edge: bright thin line
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(Math.cos(angle) * R, Math.sin(angle) * R);
+    ctx.strokeStyle = 'rgba(232,0,61,0.45)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    ctx.restore();
+
+    angle += 0.022; // ~1.25 rpm at 60fps
+    rafId = requestAnimationFrame(drawRadar);
+  }
+
+  window.radarStart = function() {
+    if (!rafId) drawRadar();
+    cvs.classList.add('active');
+  };
+  window.radarStop = function() {
+    cvs.classList.remove('active');
+    // Let opacity transition finish before killing RAF
+    setTimeout(() => {
+      if (!cvs.classList.contains('active')) {
+        cancelAnimationFrame(rafId);
+        rafId = null;
+        const ctx = cvs.getContext('2d');
+        ctx.clearRect(0, 0, cvs.width, cvs.height);
+      }
+    }, 650);
+  };
+})();
+
+// ─── FEATURE C: MILESTONE BURST ───────────────────────────────────────────────
+(function initBurst() {
+  const cvs   = document.getElementById('burstCanvas');
+  const label = document.getElementById('milestoneLabel');
+
+  function resize() {
+    cvs.width  = window.innerWidth;
+    cvs.height = window.innerHeight;
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  // MILESTONE_MSGS tracks how many bot responses have been received this session
+  let botResponseCount = 0;
+
+  window.checkMilestone = function() {
+    botResponseCount++;
+    const isFirst = botResponseCount === 1;
+    const isTenth = botResponseCount % 10 === 0;
+    if (!isFirst && !isTenth) return;
+
+    const W  = cvs.width  = window.innerWidth;
+    const H  = cvs.height = window.innerHeight;
+    const cx = W / 2;
+    const cy = H / 2;
+    const ctx = cvs.getContext('2d');
+
+    // Label text
+    label.textContent = isFirst ? '◉ SIGNAL ACQUIRED' : `◉ ${botResponseCount} TRANSMISSIONS`;
+
+    // Activate
+    cvs.classList.add('active');
+    label.classList.add('active');
+
+    const START    = performance.now();
+    const DURATION = 1250; // ms
+    const RAYS     = 18;
+    const MAX_R    = Math.sqrt(cx * cx + cy * cy) * 1.15;
+
+    function frame(now) {
+      const t = Math.min((now - START) / DURATION, 1); // 0→1
+      ctx.clearRect(0, 0, W, H);
+
+      // ── Radiating rays ─────────────────────────────────────────────
+      for (let i = 0; i < RAYS; i++) {
+        const baseAngle  = (i / RAYS) * Math.PI * 2;
+        // Each ray expands with slight stagger
+        const stagger    = (i % 3) * 0.04;
+        const progress   = Math.min(Math.max((t - stagger) / (1 - stagger), 0), 1);
+        const eased      = 1 - Math.pow(1 - progress, 2.5); // ease-out
+        const rayLen     = eased * MAX_R;
+        const rayAlpha   = (1 - t) * (i % 2 === 0 ? 0.55 : 0.35);
+        const isRed      = i % 3 !== 1;
+        const color      = isRed
+          ? `rgba(232,0,61,${rayAlpha})`
+          : `rgba(255,107,53,${rayAlpha})`;
+
+        // Ray as a narrow triangle
+        const halfW = (3 + (i % 3) * 2) * (1 - eased * 0.6); // narrows as it expands
+        const perpA = baseAngle + Math.PI / 2;
+        const tipX  = cx + Math.cos(baseAngle) * rayLen;
+        const tipY  = cy + Math.sin(baseAngle) * rayLen;
+        const lx    = cx + Math.cos(perpA) * halfW;
+        const ly    = cy + Math.sin(perpA) * halfW;
+        const rx    = cx - Math.cos(perpA) * halfW;
+        const ry    = cy - Math.sin(perpA) * halfW;
+
+        ctx.beginPath();
+        ctx.moveTo(lx, ly);
+        ctx.lineTo(tipX, tipY);
+        ctx.lineTo(rx, ry);
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+      }
+
+      // ── Central burst circle ───────────────────────────────────────
+      const burstR = MAX_R * 0.12 * Math.min(t * 4, 1) * (1 - Math.max((t - 0.5) / 0.5, 0));
+      if (burstR > 0) {
+        const grd = ctx.createRadialGradient(cx, cy, 0, cx, cy, burstR);
+        grd.addColorStop(0, `rgba(255,255,255,${0.7 * (1 - t)})`);
+        grd.addColorStop(0.4, `rgba(232,0,61,${0.5 * (1 - t)})`);
+        grd.addColorStop(1, 'rgba(232,0,61,0)');
+        ctx.beginPath();
+        ctx.arc(cx, cy, burstR, 0, Math.PI * 2);
+        ctx.fillStyle = grd;
+        ctx.fill();
+      }
+
+      // ── Expanding ring ─────────────────────────────────────────────
+      const ringR = MAX_R * 0.55 * Math.pow(t, 0.7);
+      const ringAlpha = (1 - t) * 0.6;
+      ctx.beginPath();
+      ctx.arc(cx, cy, ringR, 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(255,107,53,${ringAlpha})`;
+      ctx.lineWidth = 2.5 * (1 - t * 0.7);
+      ctx.stroke();
+
+      if (t < 1) {
+        requestAnimationFrame(frame);
+      } else {
+        // Clean up
+        ctx.clearRect(0, 0, W, H);
+        cvs.classList.remove('active');
+        label.classList.remove('active');
+      }
+    }
+
+    requestAnimationFrame(frame);
+  };
+})();
+
+// ─── FEATURE 1: BOOT ANIMATION ───────────────────────────────────────────────
+(function runBootAnimation() {
+  const bootEl = document.getElementById('bootOverlay');
+  const bootWave = document.getElementById('bootWave');
+
+  if (sessionStorage.getItem('sma_booted')) {
+    // Already played this session — remove instantly
+    bootEl.style.display = 'none';
+    return;
+  }
+
+  // Wave bars sweep in from CSS animation; after they've risen, switch to live pulse
+  setTimeout(() => {
+    bootWave.classList.add('live');
+  }, 1350); // after last bar (1.20s) + small buffer
+
+  // Start fade-out at ~1.8s, completely gone by ~2.35s
+  setTimeout(() => {
+    bootEl.classList.add('fade-out');
+  }, 1800);
+
+  bootEl.addEventListener('transitionend', () => {
+    bootEl.style.display = 'none';
+    sessionStorage.setItem('sma_booted', '1');
+  }, { once: true });
+})();
+
+// ─── BOOT ─────────────────────────────────────────────────────────────────────
+init();
+</script>
+</body>
+</html>
